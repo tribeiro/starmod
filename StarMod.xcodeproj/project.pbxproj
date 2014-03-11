@@ -6,11 +6,44 @@
 	objectVersion = 46;
 	objects = {
 
+/* Begin PBXFileReference section */
+		F12D204218C9F8730044FAF4 /* baseAstroObj.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = baseAstroObj.py; path = src/baseAstroObj.py; sourceTree = "<group>"; };
+		F12D204418CA0CC30044FAF4 /* __init__.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = __init__.py; path = src/__init__.py; sourceTree = "<group>"; };
+		F12D204518CA0F770044FAF4 /* auxiliar.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = auxiliar.py; sourceTree = "<group>"; };
+		F1C6A37C18CC221800B41655 /* starIso.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = starIso.py; path = src/starIso.py; sourceTree = "<group>"; };
+		F1C6A37F18CC23FE00B41655 /* testFlux_01.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = testFlux_01.py; sourceTree = "<group>"; };
+		F1F8F58818CEB012006B551B /* testFlux_02.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = testFlux_02.py; sourceTree = "<group>"; };
+		F1F8F58918CEB044006B551B /* starBin.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = starBin.py; path = src/starBin.py; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
 /* Begin PBXGroup section */
 		F12D203B18C9F7EE0044FAF4 = {
 			isa = PBXGroup;
 			children = (
+				F12D204318CA0CAE0044FAF4 /* src */,
+				F1C6A37D18CC233400B41655 /* tst */,
 			);
+			sourceTree = "<group>";
+		};
+		F12D204318CA0CAE0044FAF4 /* src */ = {
+			isa = PBXGroup;
+			children = (
+				F12D204218C9F8730044FAF4 /* baseAstroObj.py */,
+				F1C6A37C18CC221800B41655 /* starIso.py */,
+				F1F8F58918CEB044006B551B /* starBin.py */,
+				F12D204518CA0F770044FAF4 /* auxiliar.py */,
+				F12D204418CA0CC30044FAF4 /* __init__.py */,
+			);
+			name = src;
+			sourceTree = "<group>";
+		};
+		F1C6A37D18CC233400B41655 /* tst */ = {
+			isa = PBXGroup;
+			children = (
+				F1C6A37F18CC23FE00B41655 /* testFlux_01.py */,
+				F1F8F58818CEB012006B551B /* testFlux_02.py */,
+			);
+			name = tst;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
