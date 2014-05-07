@@ -6,6 +6,9 @@
 import numpy as np
 import auxiliar as aux
 
+limbDarkeningLawsNames = ['Square-root','Linear','Quadratic','Logarithmic','Claret2000']
+limbDarkeningLawsNCoeff = [2,1,2,2,4]
+
 ################################################################################
 
 class Surface():
@@ -55,6 +58,7 @@ class BaseAstroObj(Surface):
 		for par in kwargs.keys():
 			self.__dict__[par] = kwargs[par]
 
+
 	############################################################################
 
 	def flux(self,phase):
@@ -76,10 +80,49 @@ class BaseAstroObj(Surface):
 		mask = n_s>0.
 		return np.sum(self.I[mask]*self.limbdarkening(n_s[mask]))
 
+
 	############################################################################
 
-	def limbdarkening(self,ns):
-		return ns
+	def vprof(self,phase,vaxis=[]):
+		'''
+Return the velocity profile for the specified phase and velocity axis. If no axis
+is given will try to guess a good one from the information available.
+		'''
+
+		u1 = phase*2.*np.pi;
+
+		z1 = np.cos(self.i*aux.deg2rad)
+		z2 = np.sin(self.i*aux.deg2rad)
+		f1 = np.sin(u1)
+		f2 = np.cos(u1)
+		
+		x1 = z2*f2
+		y1 = f1*z2
+
+		n_s = self.nx*x1+self.ny*y1+self.nz*z1
+		mask = n_s>0.
+		
+		if len(vaxis) < 3:
+			vmax = np.max(np.sqrt(self.vy**2.+self.vx**2.))*1.15
+			vaxis = np.arange(-vmax,vmax+vmax/25.,vmax/25.)
+		
+		vflux = np.zeros_like(vaxis)
+		vv = x1*self.vx + y1*self.vy
+		
+		for index in range(len(vaxis)-1):
+			
+			maskv = np.bitwise_and(	mask,
+									np.bitwise_and(	vv> vaxis[index],
+													vv<vaxis[index+1]) )
+			vflux[index] = np.sum(self.I[maskv]*self.limbdarkening(n_s[maskv]))
+		
+		return vaxis,vflux
+
+	############################################################################
+
+	def limbdarkening(self,nv):
+		
+		return nv
 
 	############################################################################
 
@@ -114,3 +157,44 @@ class BaseAstroObj(Surface):
 	############################################################################
 
 ################################################################################
+
+def limbDarkeningLaws(ldlfunc,law,ldcoeff):
+	'''
+	Definitions of limb-darkening laws. This is used as a decorator.
+	'''
+	if len(ldcoeff) != limbDarkeningLawsNCoeff[law] and law >= 0:
+		raise IOError('%s law needs %i coeficients. %i Given.'%(limbDarkeningLawsNames[law],
+																limbDarkeningLawsNCoeff[law],
+																len(ldcoeff)))
+			
+	if law == 0:
+		def ldl_sqrt(nv):
+			return (1.0-ldlcoeff[0]*(1.0-nv)-ldlcoeff[1]*(1.0-np.sqrt(nv)))
+		return ldl_sqrt
+	elif law == 1:
+		def ldl_lin(nv):
+			return 1.0-ldcoeff[0]*(1.0-nv)
+		return ldl_lin
+	elif law == 2:
+		def ldl_quad(nv):
+			return 1.-ldcoeff[0]*(1.-nv)-ldcoeff[1]*(1.-nv)*(1.-nv)
+		return ldl_quad
+	elif law == 3:
+		def ldl_log(nv):
+			return 1.-ldcoeff[0]*(1.-nv)-ldcoeff[1]*nv*np.log10(nv)
+		return ldl_log
+	elif law == 4:
+		def ldl_claret2000(nv):
+			return 1. - ldcoeff[0]*(1.-nv**0.5) - ldcoeff[1]*(1.-nv) - ldcoeff[2]*(1.-nv**1.5) - ldcoeff[3]*(1.-nv*nv)
+		return ldl_claret2000
+	else:
+		return ldlfunc
+
+################################################################################
+
+
+################################################################################
+
+
+################################################################################
+

@@ -5,6 +5,7 @@
 
 from baseAstroObj import *
 import healpy as H
+from scipy import constants
 
 ################################################################################
 
@@ -12,13 +13,30 @@ class StarBinary(BaseAstroObj):
 
 	############################################################################
 
-	def __init__(self,i,q,ffac=1.0,m=1.0,nside=16,**kwargs):
-
+	def __init__(	self,i,q,ffac=1.0,m=1.0,porb=10.,nside=16,gravDark=0.05,
+					**kwargs):
+		'''
+Initialize StarBinary. User must specify at least inclination and mass ratio
+of the system. The definition of the parameters are:
+i			:	inclination, in degree (90 -> 0).
+q			:	mass ratio (M2/M1)
+ffac		:	Roche lobe filling factor, multiply Roche potential by this 
+				number. 1.0 for the Roche lobe, larger values for inside the RL. 
+				Must be >=1.0. default=1.0
+m			:	Mass of the star, in Msun. default=1.0Msun
+porb		:	Orbital period in hours. default=10.0hours
+nside		:	Pixelization number. Must be power of 2, default=16
+gravDark	:	Gravity darkening coefficients. default=0.05
+[limb_law]	:	Integer selecting a limb-darkening law. [optional]
+[limb_coeff]:	Limb-darkening coeficients. [optional]
+		'''
 		BaseAstroObj.__init__(self,	i=i,
 									q=q,
 									ffac=ffac,
 									m=m,
+									porb=porb,
 									nside=nside,
+									gravDark=gravDark,
 									**kwargs)
 
 		self.__MAX_RL_ITER__ = 100
@@ -44,7 +62,7 @@ class StarBinary(BaseAstroObj):
 		
 		rlob,niter = self.rocheLobeAll()
 		
-		print '# - NITER = %i'%(niter)
+		#print '# - NITER = %i'%(niter)
 		#print len(rlob)
 		#print '# - Std. NITER = %i'%(np.std(niter))
 		#print '# - Min. NITER = %i'%(np.min(niter))
@@ -64,23 +82,44 @@ class StarBinary(BaseAstroObj):
 		self.ny = -self.py*(1./nr+self.q/n_r-(self.q+1.));
 		self.nz = -self.pz*(1./nr+self.q/n_r);
 
-		#np = np.sqrt(nx*nx+ny*ny+nz*nz);
+		n_p = np.sqrt(self.nx*self.nx+self.ny*self.ny+self.nz*self.nz)
 
-		self.vx =  np.cos(self.phi)
-		self.vy = -np.sin(self.phi)*np.cos(self.theta)
-		self.vz = -np.sin(self.phi)*np.sin(self.theta)
+		ww = 1./(self.porb*3600.) #frequencia angular
+		#sep. orbital
+		#
+		G_CGS = constants.physical_constants['Newtonian constant of gravitation'][0]*1e3
+		MSOL_CGS = 1.989e33
+		#
+		a = (G_CGS*MSOL_CGS*self.m*(1+self.q)/(4.*np.pi*np.pi*ww*ww) )**(1./3.)
+		r2 = self.q/(self.q+1.) #Dist. orbital da estrela em unidade de a
 
-		self.I+=1
+		self._vrad = 2.*ww*np.pi*a*r2
+		self._setvrad = True
+		
+		self.vx = -2.*ww*self.py*np.pi*a
+		self.vy = 2.*ww*np.pi*a*(self.px-r2)
+		self.vz = 0.
+
+		self.I += (n_p/n_p.max())**self.gravDark
+		
+		#
+		# Setup limbdarkeing law
+		#
+		if hasattr(self,'limb_law') and hasattr(self,'limb_coeff'):
+			self.limbdarkening = limbDarkeningLaws(self.limbdarkening,self.limb_law,self.limb_coeff)
+		elif hasattr(self,'limb_law') and not hasattr(self,'limb_coeff'):
+			print '[WARNING] - Limb darkenning needs law and coefficients...'
+			print '[WARNING] - Law(%i) = %s, needs %i coefficients...'%(self.limb_law,
+																		limbDarkeningLawsNames[self.limb_law],
+																		limbDarkeningLawsNCoeff[self.limb_law])
+
 
 	############################################################################
 
-	def rocheLobe(self,ipix):
+	def rocheLobe(self,v0,u0):
 		'''
 		Find radius of the Roche lobe for specified angles.
 		'''
-
-		v0 = self.theta[ipix]
-		u0 = self.phi[ipix]
 		
 		R1 = 0.
 		R2 = self.RL1
@@ -113,7 +152,7 @@ class StarBinary(BaseAstroObj):
 				R1 = R
 				
 			if(np.abs(fi-fimax) < 1e-5):
-				return R,i
+				return R
 
 		raise RuntimeError('''Maximum number of interations reached (NITER=%i).
 Could not find Roche lobe radius (pix = %i). Pot = %+8.2e'''%(self.__MAX_RL_ITER__,ipix,fi))
@@ -194,6 +233,36 @@ Could not find Roche lobe radius.'''%(self.__MAX_RL_ITER__))
 				return x
 				
 		raise RuntimeError('Could not find RL1...')
+
+	############################################################################
+
+	def gpole(self):
+  
+		qq = self.q
+		rlob = self.rocheLobe(np.pi/2.,0.)
+		x = rlob
+		n_r = np.abs(1-x)
+		nr = x*x*x
+		n_r = n_r*n_r*n_r
+		nx = -x/nr+(qq*(1.-x)/n_r)+(qq+1.)*(x)-qq
+		n_p = np.abs(nx);
+		return n_p;
+
+	############################################################################
+
+	def set_radv(self,choice):
+		'''
+Set/unset radial velocity to the star motion. Usefull when you have 
+radial-velocity corrected spectra.
+		'''
+		if choice: # and not self._setvrad:
+			# RV not set... Set it...
+			self.vy-=self._vrad
+			self._setvrad = True
+		else: #if not choice and self._setvrad:
+			# RV set... unset...
+			self.vy+=self._vrad
+			self._setvrad = False
 
 	############################################################################
 

@@ -12,9 +12,9 @@ def main():
 	#for tt in np.arange(0,360,80):
 	#star.makeSpot(0,-45,10.,0.8)
 	#star.makeSpot(45,+00,10.,0.8)
-	star.makeSpot(00,+90,10.,0.8)
+	#star.makeSpot(90.,0,10.,0.8)
 	#for theta in range(0,360,45):
-	#	star.makeSpot(theta,65,10.,0.8)
+	#	star.makeSpot(theta,0,10.,0.8)
 	#star.makeSpot(00,-90,10.,0.8)
 	#star.makeSpot(0,+45,10.,0.8)
 	#star.makeSpot(270,-10.,10.,0.8)
@@ -26,7 +26,7 @@ def main():
 	for i in range(len(phases)):
 		flux[i] = star.flux(phases[i])/Flux0
 
-	H.mollview(star.I,sub=211,rot=(90,-90))
+	H.mollview(star.I,sub=211,rot=(-90,-90))
 
 	py.subplot(212)
 	py.plot(phases,flux,'o')
